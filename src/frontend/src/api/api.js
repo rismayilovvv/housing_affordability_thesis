@@ -1,21 +1,13 @@
 import axios from "axios";
 
-/*
- Uses:
- - local development fallback
- - deployed Netlify environment variable
-*/
-
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  "http://127.0.0.1:8000/api";
+  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 const API = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
 });
 
-/* Optional interceptor for debugging */
 API.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -29,37 +21,20 @@ API.interceptors.response.use(
 );
 
 export const fetchCountries = async () => {
-  try {
-    const response = await API.get("/countries");
-    return response.data.countries;
-  } catch (error) {
-    console.error("Failed to fetch countries:", error);
-    throw error;
-  }
+  const response = await API.get("/countries");
+  return response.data.countries;
 };
 
-export const fetchCountryData = async (
-  country,
-  startYear,
-  endYear
-) => {
-  try {
-    const response = await API.get("/data", {
-      params: {
-        country,
-        start_year: startYear,
-        end_year: endYear,
-      },
-    });
+export const fetchCountryData = async (country, startYear, endYear) => {
+  const response = await API.get("/data", {
+    params: {
+      country,
+      start_year: startYear,
+      end_year: endYear,
+    },
+  });
 
-    return response.data;
-  } catch (error) {
-    console.error(
-      `Failed loading data for ${country}:`,
-      error
-    );
-    throw error;
-  }
+  return response.data;
 };
 
 export default API;
