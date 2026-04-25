@@ -15,7 +15,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:3000",
-        "https://YOUR-NETLIFY-SITE.netlify.app",
+        "https://housing-affordability-thesis.netlify.app/",
     ],
     allow_credentials=True,
     allow_methods=["*"],
