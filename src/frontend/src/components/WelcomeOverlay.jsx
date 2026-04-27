@@ -1,36 +1,38 @@
-export default function WelcomeOverlay({ onOpenTutorial, onSkip }) {
+export default function WelcomeOverlay({ isOpen, onOpenHelp, onClose }) {
+  if (!isOpen) return null;
+
   return (
-    <div className="welcome-overlay welcome-overlay-corner">
-      <div className="welcome-overlay-card welcome-overlay-card-pro">
-        <div className="welcome-card-icon">⌂</div>
+    <div className="welcome-overlay">
+      <div className="welcome-card">
+        <div className="section-badge">Welcome</div>
 
-        <div className="welcome-content">
-          <h2>Welcome to the Housing Affordability Dashboard</h2>
-          <p>
-            Press any key to start the guided tour and discover how to use the
-            dashboard effectively.
-          </p>
-          <p className="welcome-secondary-text">
-            Press <strong>Esc</strong> to continue without the tour.
-          </p>
+        <h2>Housing Affordability Dashboard</h2>
 
-          <div className="welcome-overlay-actions">
-            <button
-              type="button"
-              className="tutorial-button secondary"
-              onClick={onSkip}
-            >
-              Skip tour
-            </button>
+        <p>
+          Explore European housing affordability through indicators, country
+          comparison, interactive maps, and mortgage eligibility simulation.
+        </p>
 
-            <button
-              type="button"
-              className="tutorial-button primary"
-              onClick={onOpenTutorial}
-            >
-              Start tour
-            </button>
-          </div>
+        <div className="welcome-actions">
+          <button
+            type="button"
+            className="welcome-primary"
+            onClick={onOpenHelp}
+          >
+            Open Guide
+          </button>
+
+          <button
+            type="button"
+            className="welcome-secondary"
+            onClick={onClose}
+          >
+            Continue to Dashboard
+          </button>
+        </div>
+
+        <div className="welcome-key-hint">
+          Press <strong>Enter</strong> for guide or <strong>ESC</strong> to close
         </div>
       </div>
     </div>

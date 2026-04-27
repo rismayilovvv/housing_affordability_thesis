@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import EuropeMap from "../components/EuropeMap";
-import FlagIcon from "../components/FlagIcon";
+// import FlagIcon from "../components/FlagIcon";
 import RankingsSection from "../components/RankingsSection";
 
 const selectedCountries = [
@@ -118,56 +118,64 @@ export default function Home() {
         <RankingsSection />
       </section>
 
-      <section className="full-width-section dataset-coverage-section">
-        <div className="dataset-coverage-header">
-          <div>
-            <div className="section-badge">Dataset Coverage</div>
-            <h3 className="section-title">Countries included in the application</h3>
-            <p className="map-description">
-              These countries are included in the dashboard dataset and are available
-              across the analytical views.
-            </p>
-          </div>
-        </div>
+{/*       <section className="full-width-section dataset-coverage-section"> */}
+{/*         <div className="dataset-coverage-header"> */}
+{/*           <div> */}
+{/*             <div className="section-badge">Dataset Coverage</div> */}
+{/*             <h3 className="section-title">Countries included in the application</h3> */}
+{/*             <p className="map-description"> */}
+{/*               These countries are included in the dashboard dataset and are available */}
+{/*               across the analytical views. */}
+{/*             </p> */}
+{/*           </div> */}
+{/*         </div> */}
 
-        <div className="country-chip-grid dataset-chip-grid">
-          {selectedCountries.map((country) => (
-            <div key={country} className="country-chip dataset-chip static-chip">
-              <FlagIcon country={country} className="flag-icon" />
-              <span>{country}</span>
-            </div>
-          ))}
-        </div>
-      </section>
+{/*         <div className="country-chip-grid dataset-chip-grid"> */}
+{/*           {selectedCountries.map((country) => ( */}
+{/*             <div key={country} className="country-chip dataset-chip static-chip"> */}
+{/*               <FlagIcon country={country} className="flag-icon" /> */}
+{/*               <span>{country}</span> */}
+{/*             </div> */}
+{/*           ))} */}
+{/*         </div> */}
+{/*       </section> */}
 
       <section className="full-width-section">
         <div className="section-badge">Explore the Dashboard</div>
         <h3 className="section-title">Main analytical views</h3>
 
         <div className="feature-card-grid">
-          <Link to="/mortgage" className="feature-card clean-feature-card">
-            <h4>Housing Prices vs Mortgage Rates</h4>
-            <p>Inspect whether changing borrowing costs coincided with housing price growth.</p>
-          </Link>
-
-          <Link to="/income" className="feature-card clean-feature-card">
-            <h4>Housing Prices vs Income</h4>
-            <p>Measure whether income growth kept pace with housing price developments.</p>
-          </Link>
-
-          <Link to="/unemployment" className="feature-card clean-feature-card">
-            <h4>Housing Prices vs Unemployment</h4>
-            <p>Explore how labour market conditions may have interacted with housing trends.</p>
+          <Link to="/indicators" className="feature-card clean-feature-card">
+            <h4>Indicator Analysis</h4>
+            <p>
+              Select HPI, mortgage rates, income, and unemployment in one combined
+              chart. Compare one, several, or all indicators for a chosen country and
+              period.
+            </p>
           </Link>
 
           <Link to="/comparison" className="feature-card clean-feature-card">
-            <h4>Compare Two Countries</h4>
-            <p>Place two countries on the same chart and compare affordability-related trends directly.</p>
+            <h4>Compare Countries</h4>
+            <p>
+              Compare two countries directly across selected affordability-related
+              indicators and inspect differences in national housing market trends.
+            </p>
           </Link>
 
           <Link to="/simulator" className="feature-card clean-feature-card">
             <h4>Mortgage Simulator</h4>
-            <p>Estimate monthly payments and compare them with income as a simplified burden indicator.</p>
+            <p>
+              Estimate monthly mortgage payments and assess affordability pressure
+              based on loan size, interest rate, repayment term, and income.
+            </p>
+          </Link>
+
+          <Link to="/methodology" className="feature-card clean-feature-card">
+            <h4>Methodology</h4>
+            <p>
+              Review the data sources, selected indicators, processing approach,
+              limitations, and analytical assumptions behind the dashboard.
+            </p>
           </Link>
         </div>
       </section>

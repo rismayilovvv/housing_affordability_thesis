@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api";
 
 const API = axios.create({
   baseURL: API_BASE_URL,
@@ -25,7 +25,11 @@ export const fetchCountries = async () => {
   return response.data.countries;
 };
 
-export const fetchCountryData = async (country, startYear, endYear) => {
+export const fetchCountryData = async (
+  country,
+  startYear,
+  endYear
+) => {
   const response = await API.get("/data", {
     params: {
       country,

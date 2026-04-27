@@ -1,18 +1,14 @@
-import { NavLink, Outlet, useOutlet } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 
 const navItems = [
   { to: "/", label: "Home" },
-  { to: "/mortgage", label: "Prices vs Mortgage" },
-  { to: "/income", label: "Prices vs Income" },
-  { to: "/unemployment", label: "Prices vs Unemployment" },
+  { to: "/indicators", label: "Indicator Analysis" },
   { to: "/comparison", label: "Compare Countries" },
   { to: "/simulator", label: "Mortgage Simulator" },
   { to: "/methodology", label: "Methodology" },
 ];
 
-export default function Layout({ children, theme, onToggleTheme, onOpenHelp }) {
-  const outlet = useOutlet();
-
+export default function Layout({ theme, onToggleTheme, onOpenHelp }) {
   return (
     <div className="site-shell">
       <header className="final-header">
@@ -62,7 +58,7 @@ export default function Layout({ children, theme, onToggleTheme, onOpenHelp }) {
       </header>
 
       <main className="site-main final-main">
-        {children || outlet || <Outlet />}
+        <Outlet />
       </main>
     </div>
   );

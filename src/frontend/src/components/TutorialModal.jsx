@@ -4,39 +4,33 @@ import { useNavigate } from "react-router-dom";
 const tutorialSteps = [
   {
     title: "Welcome to the dashboard",
-    text: "This dashboard helps you analyse housing affordability in selected European countries using interactive charts, country comparison tools, a map view, and a mortgage simulator.",
+    text: "Explore housing affordability across Europe using interactive indicators, country comparison, a map view, and a mortgage eligibility simulator.",
     actionLabel: "Open Home",
     actionPath: "/",
   },
   {
-    title: "Analyse mortgage relationships",
-    text: "Use this page to inspect how housing prices relate to mortgage rates across the selected time period.",
-    actionLabel: "Open Prices vs Mortgage",
-    actionPath: "/mortgage",
+    title: "Analyze affordability indicators",
+    text: "Use the Indicator Analysis page to compare HPI, mortgage rates, income, and unemployment in one indexed chart.",
+    actionLabel: "Open Indicator Analysis",
+    actionPath: "/indicators",
   },
   {
-    title: "Explore income dynamics",
-    text: "Use this page to evaluate whether disposable income kept pace with housing price developments.",
-    actionLabel: "Open Prices vs Income",
-    actionPath: "/income",
-  },
-  {
-    title: "Inspect labour market effects",
-    text: "Use this page to explore whether housing price developments moved together with unemployment conditions.",
-    actionLabel: "Open Prices vs Unemployment",
-    actionPath: "/unemployment",
-  },
-  {
-    title: "Compare countries directly",
-    text: "Place two countries on the same chart and compare affordability-related indicators side by side.",
+    title: "Compare countries",
+    text: "Select up to four countries and compare one chosen affordability indicator across national markets.",
     actionLabel: "Open Compare Countries",
     actionPath: "/comparison",
   },
   {
-    title: "Try the mortgage simulator",
-    text: "Use the simulator to estimate monthly payments and compare them with income as a simplified affordability burden measure.",
+    title: "Use the mortgage eligibility simulator",
+    text: "Estimate whether a simulated borrower profile fits conservative lending thresholds such as LTV, DSTI, LTI, and loan maturity.",
     actionLabel: "Open Mortgage Simulator",
     actionPath: "/simulator",
+  },
+  {
+    title: "Review methodology",
+    text: "Open the methodology section to understand the selected indicators, data sources, limitations, and analytical approach.",
+    actionLabel: "Open Methodology",
+    actionPath: "/methodology",
   },
 ];
 
@@ -56,45 +50,27 @@ export default function TutorialModal({ isOpen, onClose }) {
     if (!isOpen) return;
 
     const handleKeyDown = (event) => {
-
       if (event.key === "Escape") {
         onClose();
         return;
       }
 
-      /* ENTER or SPACE -> next */
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-
-        if (isLast) {
-          onClose();
-        } else {
-          setStep((prev) => prev + 1);
-        }
-
+        if (isLast) onClose();
+        else setStep((prev) => prev + 1);
         return;
       }
 
-      /* RIGHT ARROW -> next */
       if (event.key === "ArrowRight") {
         event.preventDefault();
-
-        if (!isLast) {
-          setStep((prev) => prev + 1);
-        }
-
+        if (!isLast) setStep((prev) => prev + 1);
         return;
       }
 
-      /* LEFT ARROW -> previous */
       if (event.key === "ArrowLeft") {
         event.preventDefault();
-
-        if (!isFirst) {
-          setStep((prev) => prev - 1);
-        }
-
-        return;
+        if (!isFirst) setStep((prev) => prev - 1);
       }
     };
 
@@ -106,10 +82,7 @@ export default function TutorialModal({ isOpen, onClose }) {
 
   return (
     <div className="tutorial-overlay tutorial-overlay-corner" onClick={onClose}>
-      <div
-        className="tutorial-modal tutorial-modal-dark"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="tutorial-modal tutorial-modal-dark" onClick={(e) => e.stopPropagation()}>
         <div className="tutorial-topline">
           <div className="tutorial-step-count">
             Step {step + 1} of {tutorialSteps.length}
@@ -127,6 +100,10 @@ export default function TutorialModal({ isOpen, onClose }) {
 
         <h3>{current.title}</h3>
         <p>{current.text}</p>
+
+{/*         <div className="keyboard-hint"> */}
+{/*           ESC close · ← back · → next · Enter continue */}
+{/*         </div> */}
 
         <div className="tutorial-step-action">
           <button
@@ -163,11 +140,8 @@ export default function TutorialModal({ isOpen, onClose }) {
             type="button"
             className="tutorial-button primary"
             onClick={() => {
-              if (isLast) {
-                onClose();
-              } else {
-                setStep((prev) => prev + 1);
-              }
+              if (isLast) onClose();
+              else setStep((prev) => prev + 1);
             }}
           >
             {isLast ? "Finish" : "Next"}

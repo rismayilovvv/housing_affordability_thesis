@@ -11,7 +11,6 @@ const currencyOptions = [
   { code: "NOK", label: "Norwegian Krone", symbol: "kr", region: "Norway", rateToEur: 0.086 },
   { code: "DKK", label: "Danish Krone", symbol: "kr", region: "Denmark", rateToEur: 0.134 },
   { code: "TRY", label: "Turkish Lira", symbol: "₺", region: "Türkiye", rateToEur: 0.028 },
-  { code: "RUB", label: "Russian Ruble", symbol: "₽", region: "Russia", rateToEur: 0.01 },
 ];
 
 function calculateMonthlyPayment(principal, annualRate, years) {
@@ -20,38 +19,12 @@ function calculateMonthlyPayment(principal, annualRate, years) {
 
   if (!principal || !years) return 0;
 
-  if (monthlyRate === 0) {
-    return principal / numberOfPayments;
-  }
+  if (monthlyRate === 0) return principal / numberOfPayments;
 
   return (
     (principal * monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) /
     (Math.pow(1 + monthlyRate, numberOfPayments) - 1)
   );
-}
-
-function getAffordabilityStatus(paymentRatio) {
-  if (paymentRatio <= 0.25) {
-    return {
-      label: "Comfortable",
-      className: "status-good",
-      text: "The estimated payment stays within a relatively comfortable share of monthly income.",
-    };
-  }
-
-  if (paymentRatio <= 0.35) {
-    return {
-      label: "Moderate burden",
-      className: "status-medium",
-      text: "The estimated payment takes a noticeable share of income and may reduce affordability.",
-    };
-  }
-
-  return {
-    label: "High burden",
-    className: "status-high",
-    text: "The estimated payment takes a large share of income and may indicate affordability pressure.",
-  };
 }
 
 function cleanMoneyInput(value) {
@@ -60,26 +33,89 @@ function cleanMoneyInput(value) {
   let cleaned = value.replace(/[^0-9.]/g, "");
   const parts = cleaned.split(".");
 
-  if (parts.length > 2) {
-    cleaned = `${parts[0]}.${parts.slice(1).join("")}`;
-  }
+  if (parts.length > 2) cleaned = `${parts[0]}.${parts.slice(1).join("")}`;
 
   const [integerPart, decimalPart] = cleaned.split(".");
-
-  if (decimalPart !== undefined) {
-    return `${integerPart}.${decimalPart.slice(0, 2)}`;
-  }
+  if (decimalPart !== undefined) return `${integerPart}.${decimalPart.slice(0, 2)}`;
 
   return integerPart;
-}
-
-function cleanRateInput(value) {
-  return cleanMoneyInput(value);
 }
 
 function cleanYearInput(value) {
   if (value === "") return "";
   return value.replace(/[^0-9]/g, "");
+}
+
+function getEligibilityAssessment({ ltv, dsti, lti, years, stressDsti }) {
+  const checks = [
+    {
+      label: "Loan-to-value ratio",
+      value: ltv,
+      limit: 90,
+      unit: "%",
+      passed: ltv <= 90,
+      description: "Measures loan amount relative to property value.",
+    },
+    {
+      label: "Debt-service-to-income ratio",
+      value: dsti,
+      limit: 35,
+      unit: "%",
+      passed: dsti <= 35,
+      description: "Measures monthly mortgage payment relative to income.",
+    },
+    {
+      label: "Loan-to-income ratio",
+      value: lti,
+      limit: 4.5,
+      unit: "x",
+      passed: lti <= 4.5,
+      description: "Measures loan amount relative to annual income.",
+    },
+    {
+      label: "Stress-tested DSTI",
+      value: stressDsti,
+      limit: 40,
+      unit: "%",
+      passed: stressDsti <= 40,
+      description: "Tests repayment ability under a higher interest rate.",
+    },
+    {
+      label: "Loan maturity",
+      value: years,
+      limit: 30,
+      unit: " years",
+      passed: years <= 30,
+      description: "Checks whether the repayment term stays within a conservative maturity range.",
+    },
+  ];
+
+  const failed = checks.filter((check) => !check.passed).length;
+
+  if (failed === 0) {
+    return {
+      label: "Eligible profile",
+      className: "status-good",
+      text: "The simulated borrower profile fits the selected conservative lending thresholds.",
+      checks,
+    };
+  }
+
+  if (failed <= 2) {
+    return {
+      label: "Borderline profile",
+      className: "status-medium",
+      text: "The profile may require stronger income, a higher down payment, or a shorter loan term.",
+      checks,
+    };
+  }
+
+  return {
+    label: "High-risk profile",
+    className: "status-high",
+    text: "The profile exceeds several lending thresholds and would likely need adjustment before approval.",
+    checks,
+  };
 }
 
 export default function MortgageSimulatorPage() {
@@ -93,26 +129,18 @@ export default function MortgageSimulatorPage() {
   const [converterAmount, setConverterAmount] = useState("");
   const [converterCurrency, setConverterCurrency] = useState("USD");
 
-  const selectedCurrency = currencyOptions.find(
-    (item) => item.code === converterCurrency
-  );
-
   useEffect(() => {
     if (!converterOpen) return;
 
     const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
-        setConverterOpen(false);
-        return;
-      }
+      if (event.key === "Escape") setConverterOpen(false);
     };
 
     window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [converterOpen]);
+
+  const selectedCurrency = currencyOptions.find((item) => item.code === converterCurrency);
 
   const convertedAmount = useMemo(() => {
     const amount = Number(converterAmount) || 0;
@@ -125,40 +153,42 @@ export default function MortgageSimulatorPage() {
   const numericLoanTerm = Number(loanTerm) || 0;
   const numericMonthlyIncome = Number(monthlyIncome) || 0;
 
-  const loanAmount = useMemo(() => {
-    const amount = numericPropertyPrice - numericDownPayment;
-    return amount > 0 ? amount : 0;
-  }, [numericPropertyPrice, numericDownPayment]);
+  const loanAmount = Math.max(numericPropertyPrice - numericDownPayment, 0);
 
   const monthlyPayment = useMemo(() => {
-    return calculateMonthlyPayment(
-      loanAmount,
-      numericInterestRate,
-      numericLoanTerm
-    );
+    return calculateMonthlyPayment(loanAmount, numericInterestRate, numericLoanTerm);
   }, [loanAmount, numericInterestRate, numericLoanTerm]);
 
-  const paymentRatio = useMemo(() => {
-    if (!numericMonthlyIncome || numericMonthlyIncome <= 0) return 0;
-    return monthlyPayment / numericMonthlyIncome;
-  }, [monthlyPayment, numericMonthlyIncome]);
+  const stressPayment = useMemo(() => {
+    return calculateMonthlyPayment(loanAmount, numericInterestRate + 2, numericLoanTerm);
+  }, [loanAmount, numericInterestRate, numericLoanTerm]);
 
-  const totalRepayment = useMemo(() => {
-    return monthlyPayment * numericLoanTerm * 12;
-  }, [monthlyPayment, numericLoanTerm]);
+  const ltv = numericPropertyPrice > 0 ? (loanAmount / numericPropertyPrice) * 100 : 0;
+  const dsti = numericMonthlyIncome > 0 ? (monthlyPayment / numericMonthlyIncome) * 100 : 0;
+  const stressDsti = numericMonthlyIncome > 0 ? (stressPayment / numericMonthlyIncome) * 100 : 0;
+  const annualIncome = numericMonthlyIncome * 12;
+  const lti = annualIncome > 0 ? loanAmount / annualIncome : 0;
 
-  const totalInterest = useMemo(() => {
-    return totalRepayment - loanAmount;
-  }, [totalRepayment, loanAmount]);
+  const totalRepayment = monthlyPayment * numericLoanTerm * 12;
+  const totalInterest = totalRepayment - loanAmount;
 
-  const status = getAffordabilityStatus(paymentRatio);
+  const assessment = getEligibilityAssessment({
+    ltv,
+    dsti,
+    lti,
+    years: numericLoanTerm,
+    stressDsti,
+  });
 
   const formatCurrency = (value) =>
     `${Number(value).toLocaleString(undefined, {
       maximumFractionDigits: 2,
     })} EUR`;
 
-  const formatPercent = (value) => `${(value * 100).toFixed(1)}%`;
+  const formatNumber = (value, unit = "") =>
+    `${Number(value).toLocaleString(undefined, {
+      maximumFractionDigits: 2,
+    })}${unit}`;
 
   const moneyInputProps = {
     type: "text",
@@ -190,11 +220,11 @@ export default function MortgageSimulatorPage() {
     <div className="analysis-page">
       <div className="page-header comparison-header">
         <div className="section-badge">Simulation View</div>
-        <h2>Mortgage Payment Simulator</h2>
+        <h2>Mortgage Eligibility Simulator</h2>
         <p className="page-description">
-          Estimate a monthly mortgage payment using loan size, interest rate,
-          repayment term, and income. This tool provides a simplified analytical
-          view of affordability pressure rather than a full financial assessment.
+          Estimate whether a simulated borrower profile would fit conservative
+          bank-style lending thresholds based on LTV, DSTI, LTI, maturity, and
+          a stress-tested interest rate scenario.
         </p>
       </div>
 
@@ -211,21 +241,18 @@ export default function MortgageSimulatorPage() {
       <div className="simulator-pro-layout">
         <div className="simulator-form-card">
           <div className="simulator-card-header">
-            <h3>Input Parameters</h3>
+            <h3>Borrower and Loan Inputs</h3>
             <p>
-              Adjust the values below to simulate a different mortgage scenario.
-              Monetary inputs are entered in EUR.
+              Enter the main variables used in a simplified mortgage
+              creditworthiness assessment.
             </p>
           </div>
 
           <div className="simulator-grid-pro">
             <div className="simulator-field">
-              <label className="filter-label" htmlFor="property-price">
-                Property price (EUR)
-              </label>
+              <label className="filter-label">Property price (EUR)</label>
               <input
                 {...moneyInputProps}
-                id="property-price"
                 value={propertyPrice}
                 placeholder="0.00"
                 onChange={(e) => setPropertyPrice(cleanMoneyInput(e.target.value))}
@@ -233,12 +260,9 @@ export default function MortgageSimulatorPage() {
             </div>
 
             <div className="simulator-field">
-              <label className="filter-label" htmlFor="down-payment">
-                Down payment (EUR)
-              </label>
+              <label className="filter-label">Down payment (EUR)</label>
               <input
                 {...moneyInputProps}
-                id="down-payment"
                 value={downPayment}
                 placeholder="0.00"
                 onChange={(e) => setDownPayment(cleanMoneyInput(e.target.value))}
@@ -246,52 +270,34 @@ export default function MortgageSimulatorPage() {
             </div>
 
             <div className="simulator-field">
-              <label className="filter-label" htmlFor="interest-rate">
-                Interest rate (%)
-              </label>
+              <label className="filter-label">Interest rate (%)</label>
               <input
                 {...moneyInputProps}
-                id="interest-rate"
                 value={interestRate}
                 placeholder="0.00"
-                onChange={(e) => setInterestRate(cleanRateInput(e.target.value))}
+                onChange={(e) => setInterestRate(cleanMoneyInput(e.target.value))}
               />
             </div>
 
             <div className="simulator-field">
-              <label className="filter-label" htmlFor="loan-term">
-                Loan term (years)
-              </label>
+              <label className="filter-label">Loan term (years)</label>
               <input
                 type="text"
                 inputMode="numeric"
                 className="filter-select simulator-input"
-                id="loan-term"
                 value={loanTerm}
                 placeholder="0"
                 onKeyDown={(e) => {
-                  if (
-                    e.key === "-" ||
-                    e.key === "." ||
-                    e.key === "," ||
-                    e.key === "e" ||
-                    e.key === "E" ||
-                    e.key === "+"
-                  ) {
-                    e.preventDefault();
-                  }
+                  if (["-", ".", ",", "e", "E", "+"].includes(e.key)) e.preventDefault();
                 }}
                 onChange={(e) => setLoanTerm(cleanYearInput(e.target.value))}
               />
             </div>
 
             <div className="simulator-field">
-              <label className="filter-label" htmlFor="monthly-income">
-                Monthly net income (EUR)
-              </label>
+              <label className="filter-label">Monthly net income (EUR)</label>
               <input
                 {...moneyInputProps}
-                id="monthly-income"
                 value={monthlyIncome}
                 placeholder="0.00"
                 onChange={(e) => setMonthlyIncome(cleanMoneyInput(e.target.value))}
@@ -302,80 +308,79 @@ export default function MortgageSimulatorPage() {
 
         <div className="simulator-results-card">
           <div className="simulator-card-header">
-            <h3>Simulation Results</h3>
-            <p>Key outputs based on the selected mortgage assumptions.</p>
+            <h3>Bank-style Assessment</h3>
+            <p>
+              The output uses conservative lending ratios commonly used in
+              mortgage creditworthiness assessment.
+            </p>
+          </div>
+
+          <div className={`simulator-status-banner ${assessment.className}`}>
+            <h4>{assessment.label}</h4>
+            <p>{assessment.text}</p>
+          </div>
+
+          <div className="eligibility-check-list">
+            {assessment.checks.map((check) => (
+              <div
+                key={check.label}
+                className={`eligibility-check ${check.passed ? "passed" : "failed"}`}
+              >
+                <div>
+                  <strong>{check.label}</strong>
+                  <p>{check.description}</p>
+                </div>
+
+                <div className="eligibility-value">
+                  <span>{formatNumber(check.value, check.unit)}</span>
+                  <small>Limit: {check.limit}{check.unit}</small>
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="simulator-results-list">
             <div className="simulator-result-row">
-              <div className="simulator-result-left">
-                <div className="simulator-result-icon">LN</div>
-                <span>Loan Amount</span>
-              </div>
+              <span>Loan Amount</span>
               <strong>{formatCurrency(loanAmount)}</strong>
             </div>
 
             <div className="simulator-result-row">
-              <div className="simulator-result-left">
-                <div className="simulator-result-icon">MP</div>
-                <span>Estimated Monthly Payment</span>
-              </div>
+              <span>Estimated Monthly Payment</span>
               <strong>{formatCurrency(monthlyPayment)}</strong>
             </div>
 
             <div className="simulator-result-row">
-              <div className="simulator-result-left">
-                <div className="simulator-result-icon">PI</div>
-                <span>Payment / Income Ratio</span>
-              </div>
-              <strong>{formatPercent(paymentRatio)}</strong>
+              <span>Stress-tested Payment (+2 p.p.)</span>
+              <strong>{formatCurrency(stressPayment)}</strong>
             </div>
 
             <div className="simulator-result-row">
-              <div className="simulator-result-left">
-                <div className="simulator-result-icon">TI</div>
-                <span>Total Interest Paid</span>
-              </div>
+              <span>Total Interest Paid</span>
               <strong>{formatCurrency(totalInterest)}</strong>
-            </div>
-
-            <div className={`simulator-status-banner ${status.className}`}>
-              <h4>Affordability Assessment: {status.label}</h4>
-              <p>{status.text}</p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="insight-box">
-        <h3>How to read this simulation</h3>
+        <h3>Interpretation note</h3>
         <p>
-          This estimate is based on a standard fixed-rate mortgage formula. It
-          does not include taxes, insurance, maintenance costs, or country-specific
-          lending rules. The currency converter uses editable static reference
-          rates for demonstration purposes and should not be treated as live FX
-          data.
+          This tool is an educational approximation of a mortgage
+          creditworthiness assessment. Real lending decisions depend on national
+          regulation, bank policy, borrower history, collateral valuation, and
+          additional risk checks.
         </p>
       </div>
 
       {converterOpen && (
-        <div
-          className="currency-modal-overlay"
-          onClick={() => setConverterOpen(false)}
-        >
-          <div
-            className="currency-modal"
-            onClick={(event) => event.stopPropagation()}
-          >
+        <div className="currency-modal-overlay" onClick={() => setConverterOpen(false)}>
+          <div className="currency-modal" onClick={(event) => event.stopPropagation()}>
             <div className="currency-modal-topline">
               <div>
                 <div className="section-badge">Currency Helper</div>
                 <h3>Convert to EUR</h3>
-                <p>
-                  Convert common currencies to <b>EUR</b> and apply the result directly
-                  to simulator fields.
-                  Press <b>ESC</b> to close.
-                </p>
+                <p>Convert common currencies to EUR. Press ESC to close.</p>
               </div>
 
               <button
@@ -390,28 +395,19 @@ export default function MortgageSimulatorPage() {
 
             <div className="currency-converter-grid">
               <div>
-                <label className="filter-label" htmlFor="converter-amount">
-                  Amount
-                </label>
+                <label className="filter-label">Amount</label>
                 <input
                   {...moneyInputProps}
-                  id="converter-amount"
                   value={converterAmount}
                   placeholder="0.00"
-                  onChange={(e) =>
-                    setConverterAmount(cleanMoneyInput(e.target.value))
-                  }
+                  onChange={(e) => setConverterAmount(cleanMoneyInput(e.target.value))}
                 />
               </div>
 
               <div>
-                <label className="filter-label" htmlFor="converter-currency">
-                  Currency
-                </label>
-
+                <label className="filter-label">Currency</label>
                 <div className="currency-select-wrapper">
                   <select
-                    id="converter-currency"
                     className="filter-select currency-select"
                     value={converterCurrency}
                     onChange={(e) => setConverterCurrency(e.target.value)}
@@ -446,32 +442,19 @@ export default function MortgageSimulatorPage() {
             </div>
 
             <div className="currency-apply-grid">
-              <button
-                type="button"
-                className="tutorial-button secondary"
-                onClick={applyConvertedToPropertyPrice}
-              >
+              <button type="button" className="tutorial-button secondary" onClick={applyConvertedToPropertyPrice}>
                 Apply to property price
               </button>
-              <button
-                type="button"
-                className="tutorial-button secondary"
-                onClick={applyConvertedToDownPayment}
-              >
+              <button type="button" className="tutorial-button secondary" onClick={applyConvertedToDownPayment}>
                 Apply to down payment
               </button>
-              <button
-                type="button"
-                className="tutorial-button primary"
-                onClick={applyConvertedToIncome}
-              >
+              <button type="button" className="tutorial-button primary" onClick={applyConvertedToIncome}>
                 Apply to monthly income
               </button>
             </div>
 
             <p className="currency-disclaimer">
-              Exchange rates are static reference values for dashboard simulation
-              only.
+              Exchange rates are static reference values for dashboard simulation only.
             </p>
           </div>
         </div>

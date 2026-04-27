@@ -46,20 +46,25 @@ export default function RankingsSection() {
 
         const rows = await Promise.all(
           countries.map(async (country) => {
-            const data = await fetchCountryData(country, 2005, 2023);
-            const latest = data?.[data.length - 1];
+            try {
+              const data = await fetchCountryData(country, 2005, 2024);
+              const latest = data?.[data.length - 1];
 
-            return {
-              country,
-              year: latest?.year,
-              hpi: latest?.housing_price_index,
-              unemployment: latest?.unemployment,
-              mortgage: latest?.mortgage_rate,
-            };
+              return {
+                country,
+                year: latest?.year,
+                hpi: latest?.housing_price_index,
+                unemployment: latest?.unemployment,
+                mortgage: latest?.mortgage_rate,
+                income: latest?.income,
+              };
+            } catch {
+              return null;
+            }
           })
         );
 
-        setLatestRows(rows.filter((row) => row.year));
+        setLatestRows(rows.filter(Boolean).filter((row) => row.year));
       } catch {
         setError("Failed to load ranking data.");
         setLatestRows([]);
@@ -79,17 +84,17 @@ export default function RankingsSection() {
     return {
       highestHpi: [...validHpi]
         .sort((a, b) => b.hpi - a.hpi)
-        .slice(0, 3)
+        .slice(0, 5)
         .map((row) => ({ country: row.country, value: row.hpi })),
 
       lowestUnemployment: [...validUnemployment]
         .sort((a, b) => a.unemployment - b.unemployment)
-        .slice(0, 3)
+        .slice(0, 5)
         .map((row) => ({ country: row.country, value: row.unemployment })),
 
       highestMortgage: [...validMortgage]
         .sort((a, b) => b.mortgage - a.mortgage)
-        .slice(0, 3)
+        .slice(0, 5)
         .map((row) => ({ country: row.country, value: row.mortgage })),
     };
   }, [latestRows]);
@@ -99,8 +104,8 @@ export default function RankingsSection() {
       <div className="section-badge">Cross-country Rankings</div>
       <h3 className="section-title">Quick comparative highlights</h3>
       <p className="map-description">
-        This section summarizes selected cross-country rankings based on the
-        latest available values in the processed dashboard dataset.
+        This section summarizes the top five countries for selected indicators
+        based on the latest available values in the processed dashboard dataset.
       </p>
 
       {loading && <p className="info-message">Loading rankings...</p>}
@@ -112,10 +117,12 @@ export default function RankingsSection() {
           <RankingCard
             title="Lowest Unemployment"
             items={rankings.lowestUnemployment}
+            suffix="%"
           />
           <RankingCard
             title="Highest Mortgage Rate"
             items={rankings.highestMortgage}
+            suffix="%"
           />
         </div>
       )}
